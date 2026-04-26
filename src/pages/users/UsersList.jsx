@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "react-router";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { useToast } from "../../context/ToastContext";
 import { Pagination } from "../../components/ui/Pagination";
+import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
 export const UsersList = () => {
   const [users, setUsers] = useState([]);
@@ -17,12 +18,19 @@ export const UsersList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(searchParams.get("page") || 1);
   const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [sort, setSort] = useState(searchParams.get("sort") || "");
+  const [order, setOrder] = useState(searchParams.get("order") || "desc");
 
   useEffect(() => {
     const params = {};
 
+    // Search and Pagination
     if (search) params.search = search;
     if (page > 1) params.page = page;
+
+    // Sort and Order
+    if (sort) params.sort = sort;
+    if (sort && order) params.order = order;
 
     setSearchParams(params);
 
@@ -34,11 +42,11 @@ export const UsersList = () => {
     } else {
       fetchUsers();
     }
-  }, [page, search]);
+  }, [page, search, sort, order]);
 
   // Fetch Users
   const fetchUsers = async () => {
-    const res = await userService.getUsers(token, page, search);
+    const res = await userService.getUsers(token, page, search, sort, order);
     setUsers(res.data);
     setPagination(res);
   };
@@ -69,6 +77,34 @@ export const UsersList = () => {
       setSelectedUserId(null);
     }
   };
+
+  // Render sort icons
+  const renderSortIcons = (column) => {
+    const isActive = sort === column;
+
+    return (
+      <span className="flex flex-col ml-1">
+        <ChevronUpIcon
+          className={`w-5 h-5 ${isActive && order === "asc" ? "text-gray-900 " : "text-gray-400"}`}
+        />
+        <ChevronDownIcon
+          className={`w-5 h-5 ${isActive && order === "desc" ? "text-gray-900 " : "text-gray-400"}`}
+        />
+      </span>
+    );
+  };
+
+  // Handle sort/order
+  const handleSort = (column) => {
+    if (sort === column) {
+      setOrder(order === "asc" ? "desc" : "asc");
+    } else {
+      setOrder("desc");
+      setSort(column);
+    }
+  };
+
+  console.log("sort", sort, "order", order);
 
   return (
     <>
@@ -117,11 +153,40 @@ export const UsersList = () => {
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-100">
-              <th className="border border-gray-200 p-2 text-left">ID</th>
-              <th className="border border-gray-200 p-2 text-left">Name</th>
-              <th className="border border-gray-200 p-2 text-left">Email</th>
-              <th className="border border-gray-200 p-2 text-left">
-                Created At
+              <th
+                onClick={() => handleSort("id")}
+                className="cursor-pointer border border-gray-200 p-2 text-left"
+              >
+                <div className="flex items-center gap-1 group">
+                  ID {renderSortIcons("id")}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("name")}
+                className="cursor-pointer border border-gray-200 p-2 text-left"
+              >
+                <div className="flex items-center gap-1 group">
+                  {" "}
+                  Name {renderSortIcons("name")}{" "}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("email")}
+                className="cursor-pointer border border-gray-200 p-2 text-left"
+              >
+                <div className="flex items-center gap-1 group">
+                  {" "}
+                  Email {renderSortIcons("email")}{" "}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("created_at")}
+                className="cursor-pointer border border-gray-200 p-2 text-left"
+              >
+                <div className="flex items-center gap-1 group">
+                  {" "}
+                  Created At {renderSortIcons("created_at")}{" "}
+                </div>
               </th>
               <th className="border border-gray-200 p-2 text-left">Action</th>
             </tr>
@@ -160,6 +225,7 @@ export const UsersList = () => {
                       >
                         Edit
                       </Link>
+
                       <button
                         onClick={() => deleteUser(user.id)}
                         className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded cursor-pointer"
