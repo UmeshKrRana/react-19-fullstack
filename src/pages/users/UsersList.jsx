@@ -20,6 +20,7 @@ export const UsersList = () => {
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [sort, setSort] = useState(searchParams.get("sort") || "");
   const [order, setOrder] = useState(searchParams.get("order") || "desc");
+  const [status, setStatus] = useState(searchParams.get("status") || "");
 
   useEffect(() => {
     const params = {};
@@ -32,6 +33,9 @@ export const UsersList = () => {
     if (sort) params.sort = sort;
     if (sort && order) params.order = order;
 
+    // Filter
+    if (status) params.status = status;
+
     setSearchParams(params);
 
     if (search) {
@@ -42,11 +46,18 @@ export const UsersList = () => {
     } else {
       fetchUsers();
     }
-  }, [page, search, sort, order]);
+  }, [page, search, sort, order, status]);
 
   // Fetch Users
   const fetchUsers = async () => {
-    const res = await userService.getUsers(token, page, search, sort, order);
+    const res = await userService.getUsers(
+      token,
+      page,
+      search,
+      sort,
+      order,
+      status,
+    );
     setUsers(res.data);
     setPagination(res);
   };
@@ -113,11 +124,7 @@ export const UsersList = () => {
       showToast(response.message, response.success ? "success" : "error");
 
       // Refresh the users listing state
-      setUsers((prevUsers) =>
-        prevUsers.map((user) =>
-          user.id === id ? { ...user, status: response.data.status } : user,
-        ),
-      );
+      fetchUsers();
     } catch (error) {
       console.error("Toggle status error", error);
     }
@@ -139,12 +146,26 @@ export const UsersList = () => {
           <h2 className="text-xl font-semibold mb-4">Users List</h2>
 
           <div className="flex items-center gap-3">
+            {/* Dropdown for Status filter */}
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              className="h-[40px] px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All</option>
+              <option value="1">Active</option>
+              <option value="0">In-active</option>
+            </select>
+
             {/* Search filter */}
             <input
               type="text"
               value={search}
               placeholder="Search users..."
-              className="w-full max-w-sm px-4 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="h-[40px] w-full max-w-sm px-4 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
               onChange={(e) => {
                 setSearch(e.target.value);
                 setPage(1);
@@ -156,6 +177,7 @@ export const UsersList = () => {
               <button
                 onClick={() => {
                   setSearch("");
+                  setStatus("");
                   setPage("1");
                 }}
                 className="px-3 py-2 bg-gray-600 text-white cursor-pointer hover:bg-gray-700 rounded"
@@ -240,7 +262,7 @@ export const UsersList = () => {
                   {/* Status */}
                   <td className="border border-gray-200 p-2 text-left">
                     <span
-                      className={`px-2 py-1 rounded ${user.status === 1 ? "bg-green-200 text-green-700" : "bg-gray-200 text-gray-600"}`}
+                      className={`px-2 py-1 rounded border ${user.status === 1 ? "bg-green-200 text-green-700 border-green-500" : "bg-gray-200 text-gray-600 border-gray-500"}`}
                     >
                       {user.status === 1 ? "Active" : "In-active"}
                     </span>
